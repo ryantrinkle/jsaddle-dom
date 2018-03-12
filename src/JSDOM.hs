@@ -26,7 +26,7 @@ import JavaScript.Web.AnimationFrame (AnimationFrameHandle, inAnimationFrame)
 #else
 import Control.Monad (void, forM_, when)
 import Control.Monad.IO.Class (MonadIO(..))
-import Control.Concurrent.MVar (putMVar, takeMVar)
+import Control.Concurrent.MVar (modifyMVar, swapMVar)
 import Language.Javascript.JSaddle.Types (JSContextRef(..))
 import Language.Javascript.JSaddle.Object (freeFunction, jsg)
 import Language.Javascript.JSaddle.Monad (askJSM)
@@ -68,10 +68,9 @@ inAnimationFrame :: OnBlocked       -- ^ what to do when encountering a blocking
                  -> JSM AnimationFrameHandle
 inAnimationFrame _ f = do
     handlersMVar <- animationFrameHandlers <$> askJSM
-    -- Take the list of pending animation fram handlers
-    handlers <- liftIO $ takeMVar handlersMVar
-    -- Add this handler to the list to be run by the callback
-    liftIO $ putMVar handlersMVar (f : handlers)
+    -- Add this handler to the list to be run by the callback and retrieve the old list
+    handlers <- liftIO $ modifyMVar handlersMVar $ \handlers -> do
+      return (f : handlers, handlers)
     -- If this was the first handler added set up a callback
     -- to run the handlers in the next animation frame.
     when (null handlers) $ do
@@ -80,9 +79,8 @@ inAnimationFrame _ f = do
               -- This is a one off handler so free it when it runs
               freeFunction fCb
               -- Take the list of handers and empty it
-              handlersToRun <- liftIO $ takeMVar handlersMVar
-              liftIO $ putMVar handlersMVar []
-              -- Exectute handlers in the order 
+              handlersToRun <- liftIO $ swapMVar handlersMVar []
+              -- Exectute handlers in the order they were added
               forM_ (reverse handlersToRun) (\handler -> handler t)
         -- Add the callback function
         void $ requestAnimationFrame win cb
