@@ -29,7 +29,7 @@ import Control.Monad.IO.Class (MonadIO(..))
 import Control.Concurrent.MVar (modifyMVar, swapMVar)
 import Language.Javascript.JSaddle.Types (JSContextRef(..))
 import Language.Javascript.JSaddle.Object (freeFunction, jsg)
-import Language.Javascript.JSaddle.Monad (askJSM)
+import Language.Javascript.JSaddle.Monad (askJSM, animationFrameHandlers)
 import JSDOM.Types
        (Callback(..), RequestAnimationFrameCallback(..), FromJSVal(..),
         MonadDOM, liftDOM, Document(..), Window(..), JSM, JSContextRef(..))
